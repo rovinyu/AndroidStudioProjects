@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -109,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
 
                 InputStreamReader reader = new InputStreamReader(in);
 
+                /*
                 int data = reader.read();
 
                 while (data != -1) {
@@ -119,6 +121,14 @@ public class MainActivity extends AppCompatActivity {
 
                     data = reader.read();
                 }
+                */
+                BufferedReader r = new BufferedReader(reader);
+                StringBuilder total = new StringBuilder();
+                String line;
+                while ((line = r.readLine()) != null) {
+                    total.append(line).append('\n');
+                }
+                result = total.toString();
 
                 return result;
 
@@ -227,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
 
                     incorrectAnswerLocation = random.nextInt(celebURLs.size());
 
-                    while (existed(i, incorrectAnswerLocation)) {
+                    while (incorrectAnswerLocation == chosenCeleb || existed(i, incorrectAnswerLocation)) {
 
                         incorrectAnswerLocation = random.nextInt(celebURLs.size());
 
