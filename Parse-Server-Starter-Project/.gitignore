@@ -1,9 +1,6 @@
 /target/
-**/lib/
+*/lib/*
 !.mvn/wrapper/maven-wrapper.jar
-**/.gradle
-**/build
-**/.DS_Store
 
 ### STS ###
 .apt_generated
