@@ -2,6 +2,7 @@ package com.rovin.whatsapp;
 
 import android.content.Intent;
 import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,49 +11,56 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 import com.parse.FindCallback;
 import com.parse.ParseException;
+import com.parse.ParseLiveQueryClient;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
 import com.parse.SaveCallback;
+import com.parse.SubscriptionHandling;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 
 public class ChatActivity extends AppCompatActivity {
 
     String activeUser = "";
 
-    ArrayList<String> messages = new ArrayList<>();
+    List<Map<String, String>> messages = new ArrayList<Map<String, String>>();
 
-    ArrayAdapter<String> arrayAdapter;
+    //ArrayList<String> messages = new ArrayList<>();
 
-    Handler handler = new Handler();
+    Handler handler;
+
+    SimpleAdapter arrayAdapter;
+
+    Handler uiHandler = new Handler();
 
     boolean chatIsActive = true;
 
     ListView chatListView;
 
     private void scrollMyListViewToBottom() {
-        chatListView.post(new Runnable() {
-            @Override
-            public void run() {
-                // Select the last row so it will scroll into view...
-                chatListView.setSelection(chatListView.getCount() - 1);
-            }
-        });
+
+        uiHandler.sendEmptyMessage(0);
+
     }
 
     @Override
-    protected void onPause() {
+    protected void onStop() {
 
         chatIsActive = false;
         Log.i("ChatActivity", "OnPause");
 
-        super.onPause();
+        super.onStop();
     }
 
     @Override
@@ -61,6 +69,67 @@ public class ChatActivity extends AppCompatActivity {
         Log.i("ChatActivity", "OnResume");
         chatIsActive = true;
         checkForUpdate();
+    }
+
+    public boolean addMessage(ParseObject object) {
+
+        String messageContent = object.getString("message");
+        if (messageContent != null) {
+
+            if (!object.getString("sender").equals(ParseUser.getCurrentUser().getUsername())) {
+
+                messageContent = "> " + messageContent;
+
+            }
+            Map<String, String> mapInfo = new HashMap<String, String>();
+            mapInfo.put("content", messageContent);
+            mapInfo.put("id", object.getObjectId());
+
+            messages.add(mapInfo);
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean delMessage(ParseObject object) {
+
+
+        Iterator<Map<String, String>> itr = messages.iterator();
+
+        while (itr.hasNext()) {
+            Map<String, String> mapInfo = itr.next();
+            if (mapInfo.get("id").equals(object.getObjectId())) {
+                itr.remove();
+            }
+        }
+        return true;
+
+    }
+
+    public boolean updateMessage(ParseObject object) {
+
+        String messageContent = object.getString("message");
+        if (messageContent != null) {
+
+            if (!object.getString("sender").equals(ParseUser.getCurrentUser().getUsername())) {
+
+                messageContent = "> " + messageContent;
+
+            }
+            ListIterator<Map<String, String>> iterator = messages.listIterator();
+
+            while (iterator.hasNext()) {
+                Map<String, String> mapItem = iterator.next();
+                if (mapItem.get("id").equals(object.getObjectId())) {
+                    mapItem.put("content", messageContent);
+                }
+                iterator.set(mapItem);
+            }
+
+            return true;
+        }
+        return false;
     }
 
     public void checkForUpdate() {
@@ -95,29 +164,15 @@ public class ChatActivity extends AppCompatActivity {
 
                         for (ParseObject message : objects) {
 
-                            String messageContent = message.getString("message");
-                            if (messageContent != null) {
-
-                                if (!message.getString("sender").equals(ParseUser.getCurrentUser().getUsername())) {
-
-                                    messageContent = "> " + messageContent;
-
-                                }
-
-                                //Log.i("Info", messageContent);
-
-                                messages.add(messageContent);
-                            }
+                            addMessage(message);
 
                         }
-
-                        arrayAdapter.notifyDataSetChanged();
                         scrollMyListViewToBottom();
 
                     }
 
                 }
-
+/*
                 if(chatIsActive) {
                     handler.postDelayed(new Runnable() {
                         @Override
@@ -126,7 +181,7 @@ public class ChatActivity extends AppCompatActivity {
                         }
                     }, 2000);
                 }
-
+*/
             }
         });
     }
@@ -156,19 +211,17 @@ public class ChatActivity extends AppCompatActivity {
 
                     if (e == null) {
 
-                        messages.add(messageContent);
+                        //messages.add(messageContent);
 
-                        arrayAdapter.notifyDataSetChanged();
-
-                        scrollMyListViewToBottom();
-
+                        //scrollMyListViewToBottom();
+/*
                         handler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
                                 checkForUpdate();
                             }
                         }, 2000);
-
+*/
                     } else {
 
                         String message = e.getMessage();
@@ -200,10 +253,60 @@ public class ChatActivity extends AppCompatActivity {
         setTitle("Chat with " + activeUser);
 
         chatListView = (ListView) findViewById(R.id.chatListView);
+        arrayAdapter = new SimpleAdapter(ChatActivity.this, messages, android.R.layout.simple_list_item_1, new String[] {"content"}, new int[] {android.R.id.text1});
 
-        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, messages);
+        //arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, messages);
 
         chatListView.setAdapter(arrayAdapter);
+
+        uiHandler = new Handler(){
+            @Override
+            public void handleMessage(Message msg) {
+                arrayAdapter.notifyDataSetChanged();
+                chatListView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Select the last row so it will scroll into view...
+                        chatListView.setSelection(chatListView.getCount() - 1);
+                    }
+                });
+            }
+        };
+
+
+        ParseLiveQueryClient parseLiveQueryClient = ParseLiveQueryClient.Factory.getClient();
+
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("Message");
+
+        SubscriptionHandling<ParseObject> subscriptionHandling = parseLiveQueryClient.subscribe(query);
+
+        subscriptionHandling.handleEvents(new SubscriptionHandling.HandleEventsCallback<ParseObject>() {
+            @Override
+            public void onEvents (ParseQuery<ParseObject> query, SubscriptionHandling.Event event, ParseObject object) {
+                Log.i("ChatActivity", "Received subscription event : " + event + "\n current object state : " + object.toString());
+
+                if(chatIsActive) {
+                    switch (event) {
+                        case CREATE:
+                            if (addMessage(object)) {
+                                scrollMyListViewToBottom();
+                            }
+                            break;
+                        case DELETE:
+                            if (delMessage(object)) {
+                                scrollMyListViewToBottom();
+                            }
+                            break;
+                        case UPDATE:
+                            if (updateMessage(object)) {
+                                scrollMyListViewToBottom();
+                            }
+                        default:
+                            break;
+                    }
+                }
+            }
+        });
 
         //checkForUpdate();
 

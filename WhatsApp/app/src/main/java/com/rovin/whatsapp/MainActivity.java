@@ -82,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
 
                         }
 
+                        Log.i("Info", "Login error, please try again later...");
+
                         Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
 
                     }
@@ -112,11 +114,14 @@ public class MainActivity extends AppCompatActivity {
 
                         String message = e.getMessage();
 
+                        Log.i("Info", "Sign up error: " + message);
+
                         if (message.toLowerCase().contains("java")) {
 
                             message = e.getMessage().substring(e.getMessage().indexOf(" "));
 
                         }
+
 
                         Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
                     }

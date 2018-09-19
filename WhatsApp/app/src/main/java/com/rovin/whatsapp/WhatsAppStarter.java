@@ -30,9 +30,9 @@ public class WhatsAppStarter extends Application {
 
     // Add your initialization code here
     Parse.initialize(new Parse.Configuration.Builder(getApplicationContext())
-            .applicationId("9cf729ed8f7ab2c587bd48dc38c766cc77cd00ad")
-            .clientKey("f5caafe6afeff4b20d4a38ee4ca9efdfa35411cd")
-            .server("http://52.14.230.39:80/parse/")
+            .applicationId("myAppId")
+            .clientKey("myMasterKey")
+            .server("http://18.222.105.52:1337/parse/")
             .build()
     );
 
